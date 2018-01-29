@@ -16,6 +16,7 @@
 #include <linux/power_supply.h>
 #include <linux/slab.h>
 #include <linux/stat.h>
+#include <linux/delay.h>
 
 #include "power_supply.h"
 
@@ -92,6 +93,7 @@ static ssize_t power_supply_show_property(struct device *dev,
 		else if (ret != -ENODEV)
 			dev_err(dev, "driver failed to report `%s' property: %zd\n",
 				attr->attr.name, ret);
+			ssleep(1);
 		return ret;
 	}
 

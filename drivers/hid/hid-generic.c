@@ -1,7 +1,5 @@
 /*
  *  HID support for Linux
-/*
- *  HID support for Linux
  *
  *  Copyright (c) 1999 Andreas Gal
  *  Copyright (c) 2000-2005 Vojtech Pavlik <vojtech@suse.cz>
@@ -9,7 +7,6 @@
  *  Copyright (c) 2007-2008 Oliver Neukum
  *  Copyright (c) 2006-2012 Jiri Kosina
  *  Copyright (c) 2012 Henrik Rydberg
- *  Copyright (c) 2014 Andrzej Kaczmarek
  */
 
 /*
@@ -27,35 +24,17 @@
 
 #include <linux/hid.h>
 
-static const struct hid_device_id hid_generic_devices[] = {
-	{ HID_DEVICE(HID_BUS_ANY, HID_ANY_ID, HID_ANY_ID) },
+static const struct hid_device_id hid_table[] = {
+	{ HID_DEVICE(HID_BUS_ANY, HID_GROUP_GENERIC, HID_ANY_ID, HID_ANY_ID) },
 	{ }
 };
-MODULE_DEVICE_TABLE(hid, hid_generic_devices);
+MODULE_DEVICE_TABLE(hid, hid_table);
 
-static struct hid_driver hid_generic_driver = {
+static struct hid_driver hid_generic = {
 	.name = "hid-generic",
-	.id_table = hid_generic_devices,
+	.id_table = hid_table,
 };
-
-static int __init hid_generic_init2(void)
-{
-	int ret;
-
-	ret = hid_register_driver(&hid_generic_driver);
-	if (ret)
-		pr_err("can't register hid-generic driver\n");
-
-	return ret;
-}
-
-static void __exit hid_generic_exit2(void)
-{
-	hid_unregister_driver(&hid_generic_driver);
-}
-
-module_init(hid_generic_init2);
-module_exit(hid_generic_exit2);
+module_hid_driver(hid_generic);
 
 MODULE_AUTHOR("Henrik Rydberg");
 MODULE_DESCRIPTION("HID generic driver");

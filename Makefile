@@ -898,7 +898,8 @@ vmlinux-alldirs	:= $(sort $(vmlinux-dirs) $(patsubst %/,%,$(filter %/, \
 		     $(init-) $(core-) $(drivers-) $(net-) $(libs-))))
 
 
-backports-y	:= $(patsubst %/, %/built-in.o, $(backports-y))init-y		:= $(patsubst %/, %/built-in.o, $(init-y))
+backports-y	:= $(patsubst %/, %/built-in.o, $(backports-y))
+init-y		:= $(patsubst %/, %/built-in.o, $(init-y))
 core-y		:= $(patsubst %/, %/built-in.o, $(core-y))
 drivers-y	:= $(patsubst %/, %/built-in.o, $(drivers-y))
 net-y		:= $(patsubst %/, %/built-in.o, $(net-y))

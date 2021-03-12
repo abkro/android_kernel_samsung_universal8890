@@ -21,12 +21,6 @@ config BACKPORT_KERNEL_NAME
 menuconfig BACKPORT_LINUX
 	bool "Backport Linux v4.2-0-g64291f7db5bd (backports d13ca803)"
 	default n
-	---help---
-	  Enabling this will let give you the opportunity to use features and
-	  drivers backported from Linux v4.2-0-g64291f7db5bd
-	  on the kernel your are using. This is experimental and you should
-	  say no unless you'd like to help test things or want to help debug
-	  this should we run into any issues.
 
 if BACKPORT_LINUX
 

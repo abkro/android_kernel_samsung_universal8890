@@ -492,7 +492,7 @@ static int bfusb_send_frame(struct hci_dev *hdev, struct sk_buff *skb)
 	case HCI_SCODATA_PKT:
 		hdev->stat.sco_tx++;
 		break;
-	};
+	}
 
 	/* Prepend skb with frame type */
 	memcpy(skb_push(skb, 1), &bt_cb(skb)->pkt_type, 1);
@@ -738,7 +738,9 @@ static struct usb_driver bfusb_driver = {
 	.probe		= bfusb_probe,
 	.disconnect	= bfusb_disconnect,
 	.id_table	= bfusb_table,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,5,0))
 	.disable_hub_initiated_lpm = 1,
+#endif
 };
 
 module_usb_driver(bfusb_driver);

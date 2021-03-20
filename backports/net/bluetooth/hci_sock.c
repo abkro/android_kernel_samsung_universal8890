@@ -503,16 +503,7 @@ static int hci_sock_release(struct socket *sock)
 
 	if (hdev) {
 		if (hci_pi(sk)->channel == HCI_CHANNEL_USER) {
-			/* When releasing an user channel exclusive access,
-			 * call hci_dev_do_close directly instead of calling
-			 * hci_dev_close to ensure the exclusive access will
-			 * be released and the controller brought back down.
-			 *
-			 * The checking of HCI_AUTO_OFF is not needed in this
-			 * case since it will have been cleared already when
-			 * opening the user channel.
-			 */
-			hci_dev_do_close(hdev);
+			hci_dev_close(hdev->id);
 			hci_dev_clear_flag(hdev, HCI_USER_CHANNEL);
 			mgmt_index_added(hdev);
 		}
@@ -974,6 +965,13 @@ static int hci_sock_recvmsg(struct socket *sock, struct msghdr *msg, size_t len,
 
 	return err ? : copied;
 }
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,1,0)
+static int backport_hci_sock_recvmsg(struct kiocb *iocb, struct socket *sock,
+				     struct msghdr *msg, size_t len,
+				     int flags){
+	return hci_sock_recvmsg(sock, msg, len, flags);
+}
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4,1,0) */
 
 static int hci_mgmt_cmd(struct hci_mgmt_chan *chan, struct sock *sk,
 			struct msghdr *msg, size_t msglen)
@@ -1210,6 +1208,12 @@ drop:
 	kfree_skb(skb);
 	goto done;
 }
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,1,0)
+static int backport_hci_sock_sendmsg(struct kiocb *iocb, struct socket *sock,
+				     struct msghdr *msg, size_t len){
+	return hci_sock_sendmsg(sock, msg, len);
+}
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4,1,0) */
 
 static int hci_sock_setsockopt(struct socket *sock, int level, int optname,
 			       char __user *optval, unsigned int len)
@@ -1366,8 +1370,16 @@ static const struct proto_ops hci_sock_ops = {
 	.release	= hci_sock_release,
 	.bind		= hci_sock_bind,
 	.getname	= hci_sock_getname,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0)
 	.sendmsg	= hci_sock_sendmsg,
+#else
+	.sendmsg = backport_hci_sock_sendmsg,
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0) */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0)
 	.recvmsg	= hci_sock_recvmsg,
+#else
+	.recvmsg = backport_hci_sock_recvmsg,
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0) */
 	.ioctl		= hci_sock_ioctl,
 	.poll		= datagram_poll,
 	.listen		= sock_no_listen,

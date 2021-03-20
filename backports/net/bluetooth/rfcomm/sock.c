@@ -54,7 +54,11 @@ static void rfcomm_sk_data_ready(struct rfcomm_dlc *d, struct sk_buff *skb)
 
 	atomic_add(skb->len, &sk->sk_rmem_alloc);
 	skb_queue_tail(&sk->sk_receive_queue, skb);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,15,0)
 	sk->sk_data_ready(sk);
+#else
+	sk->sk_data_ready(sk, 0);
+#endif
 
 	if (atomic_read(&sk->sk_rmem_alloc) >= sk->sk_rcvbuf)
 		rfcomm_dlc_throttle(d);
@@ -84,7 +88,11 @@ static void rfcomm_sk_state_change(struct rfcomm_dlc *d, int err)
 			sock_set_flag(sk, SOCK_ZAPPED);
 			bt_accept_unlink(sk);
 		}
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,15,0)
 		parent->sk_data_ready(parent);
+#else
+		parent->sk_data_ready(parent, 0);
+#endif
 	} else {
 		if (d->state == BT_CONNECTED)
 			rfcomm_session_getaddr(d->session,
@@ -618,6 +626,13 @@ done:
 
 	return sent;
 }
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,1,0)
+static int backport_rfcomm_sock_sendmsg(struct kiocb *iocb,
+					struct socket *sock,
+					struct msghdr *msg, size_t len){
+	return rfcomm_sock_sendmsg(sock, msg, len);
+}
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4,1,0) */
 
 static int rfcomm_sock_recvmsg(struct socket *sock, struct msghdr *msg,
 			       size_t size, int flags)
@@ -643,6 +658,14 @@ static int rfcomm_sock_recvmsg(struct socket *sock, struct msghdr *msg,
 
 	return len;
 }
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,1,0)
+static int backport_rfcomm_sock_recvmsg(struct kiocb *iocb,
+					struct socket *sock,
+					struct msghdr *msg, size_t len,
+					int flags){
+	return rfcomm_sock_recvmsg(sock, msg, len, flags);
+}
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4,1,0) */
 
 static int rfcomm_sock_setsockopt_old(struct socket *sock, int optname, char __user *optval, unsigned int optlen)
 {
@@ -894,7 +917,7 @@ static int rfcomm_sock_ioctl(struct socket *sock, unsigned int cmd, unsigned lon
 	err = bt_sock_ioctl(sock, cmd, arg);
 
 	if (err == -ENOIOCTLCMD) {
-#ifdef CONFIG_BT_RFCOMM_TTY
+#ifdef CONFIG_BACKPORT_BT_RFCOMM_TTY
 		lock_sock(sk);
 		err = rfcomm_dev_ioctl(sk, cmd, (void __user *) arg);
 		release_sock(sk);
@@ -1040,8 +1063,16 @@ static const struct proto_ops rfcomm_sock_ops = {
 	.listen		= rfcomm_sock_listen,
 	.accept		= rfcomm_sock_accept,
 	.getname	= rfcomm_sock_getname,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0)
 	.sendmsg	= rfcomm_sock_sendmsg,
+#else
+	.sendmsg = backport_rfcomm_sock_sendmsg,
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0) */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0)
 	.recvmsg	= rfcomm_sock_recvmsg,
+#else
+	.recvmsg = backport_rfcomm_sock_recvmsg,
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0) */
 	.shutdown	= rfcomm_sock_shutdown,
 	.setsockopt	= rfcomm_sock_setsockopt,
 	.getsockopt	= rfcomm_sock_getsockopt,

@@ -35,7 +35,7 @@
 #define HCIUARTGETFLAGS		_IOR('U', 204, int)
 
 /* UART protocols */
-#define HCI_UART_MAX_PROTO	8
+#define HCI_UART_MAX_PROTO	9
 
 #define HCI_UART_H4	0
 #define HCI_UART_BCSP	1
@@ -45,6 +45,7 @@
 #define HCI_UART_ATH3K	5
 #define HCI_UART_INTEL	6
 #define HCI_UART_BCM	7
+#define HCI_UART_QCA	8
 
 #define HCI_UART_RAW_DEVICE	0
 #define HCI_UART_RESET_ON_INIT	1
@@ -108,7 +109,7 @@ void hci_uart_set_flow_control(struct hci_uart *hu, bool enable);
 void hci_uart_set_speeds(struct hci_uart *hu, unsigned int init_speed,
 			 unsigned int oper_speed);
 
-#ifdef CONFIG_BT_HCIUART_H4
+#ifdef CONFIG_BACKPORT_BT_HCIUART_H4
 int h4_init(void);
 int h4_deinit(void);
 
@@ -147,27 +148,37 @@ struct sk_buff *h4_recv_buf(struct hci_dev *hdev, struct sk_buff *skb,
 			    const struct h4_recv_pkt *pkts, int pkts_count);
 #endif
 
-#ifdef CONFIG_BT_HCIUART_BCSP
+#ifdef CONFIG_BACKPORT_BT_HCIUART_BCSP
 int bcsp_init(void);
 int bcsp_deinit(void);
 #endif
 
-#ifdef CONFIG_BT_HCIUART_LL
+#ifdef CONFIG_BACKPORT_BT_HCIUART_LL
 int ll_init(void);
 int ll_deinit(void);
 #endif
 
-#ifdef CONFIG_BT_HCIUART_ATH3K
+#ifdef CONFIG_BACKPORT_BT_HCIUART_ATH3K
 int ath_init(void);
 int ath_deinit(void);
 #endif
 
-#ifdef CONFIG_BT_HCIUART_3WIRE
+#ifdef CONFIG_BACKPORT_BT_HCIUART_3WIRE
 int h5_init(void);
 int h5_deinit(void);
 #endif
 
-#ifdef CONFIG_BT_HCIUART_BCM
+#ifdef CONFIG_BACKPORT_BT_HCIUART_INTEL
+int intel_init(void);
+int intel_deinit(void);
+#endif
+
+#ifdef CONFIG_BACKPORT_BT_HCIUART_BCM
 int bcm_init(void);
 int bcm_deinit(void);
+#endif
+
+#ifdef CONFIG_BACKPORT_BT_HCIUART_QCA
+int qca_init(void);
+int qca_deinit(void);
 #endif

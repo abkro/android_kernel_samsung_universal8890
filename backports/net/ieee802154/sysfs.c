@@ -14,11 +14,13 @@
  */
 
 #include <linux/device.h>
+#include <linux/rtnetlink.h>
 
 #include <net/cfg802154.h>
 
 #include "core.h"
 #include "sysfs.h"
+#include "rdev-ops.h"
 
 static inline struct cfg802154_registered_device *
 dev_to_rdev(struct device *dev)
@@ -60,16 +62,62 @@ static struct attribute *pmib_attrs[] = {
 	&dev_attr_name.attr,
 	NULL,
 };
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,11,0)
 ATTRIBUTE_GROUPS(pmib);
+#else
+#define BP_ATTR_GRP_STRUCT device_attribute
+ATTRIBUTE_GROUPS_BACKPORT(pmib);
+#endif
+
+#ifdef CONFIG_PM_SLEEP
+static int wpan_phy_suspend(struct device *dev)
+{
+	struct cfg802154_registered_device *rdev = dev_to_rdev(dev);
+	int ret = 0;
+
+	if (rdev->ops->suspend) {
+		rtnl_lock();
+		ret = rdev_suspend(rdev);
+		rtnl_unlock();
+	}
+
+	return ret;
+}
+
+static int wpan_phy_resume(struct device *dev)
+{
+	struct cfg802154_registered_device *rdev = dev_to_rdev(dev);
+	int ret = 0;
+
+	if (rdev->ops->resume) {
+		rtnl_lock();
+		ret = rdev_resume(rdev);
+		rtnl_unlock();
+	}
+
+	return ret;
+}
+
+static SIMPLE_DEV_PM_OPS(wpan_phy_pm_ops, wpan_phy_suspend, wpan_phy_resume);
+#define WPAN_PHY_PM_OPS (&wpan_phy_pm_ops)
+#else
+#define WPAN_PHY_PM_OPS NULL
+#endif
 
 struct class wpan_phy_class = {
 	.name = "ieee802154",
 	.dev_release = wpan_phy_release,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,11,0)
 	.dev_groups = pmib_groups,
+#else
+	.dev_attrs = pmib_dev_attrs,
+#endif
+	.pm = WPAN_PHY_PM_OPS,
 };
 
 int wpan_phy_sysfs_init(void)
 {
+	init_pmib_attrs();
 	return class_register(&wpan_phy_class);
 }
 

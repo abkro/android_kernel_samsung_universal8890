@@ -975,6 +975,13 @@ static int l2cap_sock_sendmsg(struct socket *sock, struct msghdr *msg,
 
 	return err;
 }
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,1,0)
+static int backport_l2cap_sock_sendmsg(struct kiocb *iocb,
+				       struct socket *sock,
+				       struct msghdr *msg, size_t len){
+	return l2cap_sock_sendmsg(sock, msg, len);
+}
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4,1,0) */
 
 static int l2cap_sock_recvmsg(struct socket *sock, struct msghdr *msg,
 			      size_t len, int flags)
@@ -1036,6 +1043,14 @@ done:
 	release_sock(sk);
 	return err;
 }
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,1,0)
+static int backport_l2cap_sock_recvmsg(struct kiocb *iocb,
+				       struct socket *sock,
+				       struct msghdr *msg, size_t len,
+				       int flags){
+	return l2cap_sock_recvmsg(sock, msg, len, flags);
+}
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4,1,0) */
 
 /* Kill socket (only if zapped and orphan)
  * Must be called on unlocked socket.
@@ -1054,18 +1069,23 @@ static void l2cap_sock_kill(struct sock *sk)
 	sock_put(sk);
 }
 
-static int __l2cap_wait_ack(struct sock *sk)
+static int __l2cap_wait_ack(struct sock *sk, struct l2cap_chan *chan)
 {
-	struct l2cap_chan *chan = l2cap_pi(sk)->chan;
 	DECLARE_WAITQUEUE(wait, current);
 	int err = 0;
-	int timeo = HZ/5;
+	int timeo = L2CAP_WAIT_ACK_POLL_PERIOD;
+	/* Timeout to prevent infinite loop */
+	unsigned long timeout = jiffies + L2CAP_WAIT_ACK_TIMEOUT;
 
 	add_wait_queue(sk_sleep(sk), &wait);
 	set_current_state(TASK_INTERRUPTIBLE);
-	while (chan->unacked_frames > 0 && chan->conn) {
+	do {
+		BT_DBG("Waiting for %d ACKs, timeout %04d ms",
+		       chan->unacked_frames, time_after(jiffies, timeout) ? 0 :
+		       jiffies_to_msecs(timeout - jiffies));
+
 		if (!timeo)
-			timeo = HZ/5;
+			timeo = L2CAP_WAIT_ACK_POLL_PERIOD;
 
 		if (signal_pending(current)) {
 			err = sock_intr_errno(timeo);
@@ -1080,7 +1100,15 @@ static int __l2cap_wait_ack(struct sock *sk)
 		err = sock_error(sk);
 		if (err)
 			break;
-	}
+
+		if (time_after(jiffies, timeout)) {
+			err = -ENOLINK;
+			break;
+		}
+
+	} while (chan->unacked_frames > 0 &&
+		 chan->state == BT_CONNECTED);
+
 	set_current_state(TASK_RUNNING);
 	remove_wait_queue(sk_sleep(sk), &wait);
 	return err;
@@ -1098,7 +1126,12 @@ static int l2cap_sock_shutdown(struct socket *sock, int how)
 	if (!sk)
 		return 0;
 
+	/* prevent sk structure from being freed whilst unlocked */
+	sock_hold(sk);
+
 	chan = l2cap_pi(sk)->chan;
+	/* prevent chan structure from being freed whilst unlocked */
+	l2cap_chan_hold(chan);
 	conn = chan->conn;
 
 	BT_DBG("chan %p state %s", chan, state_to_string(chan->state));
@@ -1110,8 +1143,10 @@ static int l2cap_sock_shutdown(struct socket *sock, int how)
 	lock_sock(sk);
 
 	if (!sk->sk_shutdown) {
-		if (chan->mode == L2CAP_MODE_ERTM)
-			err = __l2cap_wait_ack(sk);
+		if (chan->mode == L2CAP_MODE_ERTM &&
+		    chan->unacked_frames > 0 &&
+		    chan->state == BT_CONNECTED)
+			err = __l2cap_wait_ack(sk, chan);
 
 		sk->sk_shutdown = SHUTDOWN_MASK;
 
@@ -1133,6 +1168,11 @@ static int l2cap_sock_shutdown(struct socket *sock, int how)
 
 	if (conn)
 		mutex_unlock(&conn->chan_lock);
+
+	l2cap_chan_put(chan);
+	sock_put(sk);
+
+	BT_DBG("err: %d", err);
 
 	return err;
 }
@@ -1291,7 +1331,11 @@ static void l2cap_sock_teardown_cb(struct l2cap_chan *chan, int err)
 
 		if (parent) {
 			bt_accept_unlink(sk);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,15,0)
 			parent->sk_data_ready(parent);
+#else
+			parent->sk_data_ready(parent, 0);
+#endif
 		} else {
 			sk->sk_state_change(sk);
 		}
@@ -1358,8 +1402,13 @@ static void l2cap_sock_ready_cb(struct l2cap_chan *chan)
 	sk->sk_state = BT_CONNECTED;
 	sk->sk_state_change(sk);
 
-	if (parent)
+	if (parent) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,15,0)
 		parent->sk_data_ready(parent);
+#else
+		parent->sk_data_ready(parent, 0);
+#endif
+	}
 
 	release_sock(sk);
 }
@@ -1371,8 +1420,13 @@ static void l2cap_sock_defer_cb(struct l2cap_chan *chan)
 	lock_sock(sk);
 
 	parent = bt_sk(sk)->parent;
-	if (parent)
+	if (parent) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,15,0)
 		parent->sk_data_ready(parent);
+#else
+		parent->sk_data_ready(parent, 0);
+#endif
+	}
 
 	release_sock(sk);
 }
@@ -1604,8 +1658,16 @@ static const struct proto_ops l2cap_sock_ops = {
 	.listen		= l2cap_sock_listen,
 	.accept		= l2cap_sock_accept,
 	.getname	= l2cap_sock_getname,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0)
 	.sendmsg	= l2cap_sock_sendmsg,
+#else
+	.sendmsg = backport_l2cap_sock_sendmsg,
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0) */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0)
 	.recvmsg	= l2cap_sock_recvmsg,
+#else
+	.recvmsg = backport_l2cap_sock_recvmsg,
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0) */
 	.poll		= bt_sock_poll,
 	.ioctl		= bt_sock_ioctl,
 	.mmap		= sock_no_mmap,

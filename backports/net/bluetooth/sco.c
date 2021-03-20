@@ -154,13 +154,13 @@ static void sco_chan_del(struct sock *sk, int err)
 	sock_set_flag(sk, SOCK_ZAPPED);
 }
 
-static int sco_conn_del(struct hci_conn *hcon, int err)
+static void sco_conn_del(struct hci_conn *hcon, int err)
 {
 	struct sco_conn *conn = hcon->sco_data;
 	struct sock *sk;
 
 	if (!conn)
-		return 0;
+		return;
 
 	BT_DBG("hcon %p conn %p, err %d", hcon, conn, err);
 
@@ -179,7 +179,6 @@ static int sco_conn_del(struct hci_conn *hcon, int err)
 
 	hcon->sco_data = NULL;
 	kfree(conn);
-	return 0;
 }
 
 static void __sco_chan_add(struct sco_conn *conn, struct sock *sk, struct sock *parent)
@@ -713,6 +712,12 @@ static int sco_sock_sendmsg(struct socket *sock, struct msghdr *msg,
 	release_sock(sk);
 	return err;
 }
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,1,0)
+static int backport_sco_sock_sendmsg(struct kiocb *iocb, struct socket *sock,
+				     struct msghdr *msg, size_t len){
+	return sco_sock_sendmsg(sock, msg, len);
+}
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4,1,0) */
 
 static void sco_conn_defer_accept(struct hci_conn *conn, u16 setting)
 {
@@ -779,6 +784,13 @@ static int sco_sock_recvmsg(struct socket *sock, struct msghdr *msg,
 
 	return bt_sock_recvmsg(sock, msg, len, flags);
 }
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,1,0)
+static int backport_sco_sock_recvmsg(struct kiocb *iocb, struct socket *sock,
+				     struct msghdr *msg, size_t len,
+				     int flags){
+	return sco_sock_recvmsg(sock, msg, len, flags);
+}
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4,1,0) */
 
 static int sco_sock_setsockopt(struct socket *sock, int level, int optname, char __user *optval, unsigned int optlen)
 {
@@ -1047,7 +1059,11 @@ static void sco_conn_ready(struct sco_conn *conn)
 			sk->sk_state = BT_CONNECTED;
 
 		/* Wake up parent */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,15,0)
 		parent->sk_data_ready(parent);
+#else
+		parent->sk_data_ready(parent, 0);
+#endif
 
 		bh_unlock_sock(parent);
 
@@ -1173,8 +1189,16 @@ static const struct proto_ops sco_sock_ops = {
 	.listen		= sco_sock_listen,
 	.accept		= sco_sock_accept,
 	.getname	= sco_sock_getname,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0)
 	.sendmsg	= sco_sock_sendmsg,
+#else
+	.sendmsg = backport_sco_sock_sendmsg,
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0) */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0)
 	.recvmsg	= sco_sock_recvmsg,
+#else
+	.recvmsg = backport_sco_sock_recvmsg,
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0) */
 	.poll		= bt_sock_poll,
 	.ioctl		= bt_sock_ioctl,
 	.mmap		= sock_no_mmap,

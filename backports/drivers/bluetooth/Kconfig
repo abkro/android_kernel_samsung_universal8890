@@ -16,11 +16,6 @@ config BACKPORT_BT_RTL
 	depends on !BT_RTL
 	depends on FW_LOADER
 
-config BACKPORT_BT_QCA
-	tristate
-	depends on !BT_QCA
-	depends on FW_LOADER
-
 config BACKPORT_BT_HCIBTUSB
 	tristate "HCI USB driver"
 	depends on !BT_HCIBTUSB
@@ -151,7 +146,6 @@ config BACKPORT_BT_HCIUART_INTEL
 	bool "Intel protocol support"
 	depends on !BT_HCIUART_INTEL
 	depends on BACKPORT_BT_HCIUART
-	select BACKPORT_BT_HCIUART_H4
 	select BACKPORT_BT_INTEL
 	help
 	  The Intel protocol support enables Bluetooth HCI over serial
@@ -170,20 +164,6 @@ config BACKPORT_BT_HCIUART_BCM
 	  port interface for Broadcom Bluetooth controllers.
 
 	  Say Y here to compile support for Broadcom protocol.
-
-config BACKPORT_BT_HCIUART_QCA
-	bool "Qualcomm Atheros protocol support"
-	depends on !BT_HCIUART_QCA
-	depends on BACKPORT_BT_HCIUART
-	select BACKPORT_BT_HCIUART_H4
-	select BACKPORT_BT_QCA
-	help
-	  The Qualcomm Atheros protocol supports HCI In-Band Sleep feature
-	  over serial port interface(H4) between controller and host.
-	  This protocol is required for UART clock control for QCA Bluetooth
-	  devices.
-
-	  Say Y here to compile support for QCA protocol.
 
 config BACKPORT_BT_HCIBCM203X
 	tristate "HCI BCM203x USB driver"
@@ -347,17 +327,4 @@ config BACKPORT_BT_WILINK
 	  Say Y here to compile support for Texas Instrument's WiLink7 driver
 	  into the kernel or say M to compile it as module (btwilink).
 
-config BT_BCM4358
-        bool "Enable BCM4358 driver"
-        default n
-        help
-          Adds BCM4358 RFKILL driver for Broadcom BCM4358 chipset for exynos54xx.
-          default is n.
-
-config BT_BCM4359
-        bool "Enable BCM4359 driver"
-        default n
-        help
-          Adds BCM4359 RFKILL driver for Broadcom BCM4359 chipset for exynos54xx.
-          default is n.
 endmenu

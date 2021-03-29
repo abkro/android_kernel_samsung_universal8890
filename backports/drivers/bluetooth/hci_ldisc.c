@@ -787,7 +787,7 @@ static int __init hci_uart_init(void)
 
 	/* Register the tty discipline */
 
-	memset(&hci_uart_ldisc, 0, sizeof(hci_uart_ldisc));
+	memset(&hci_uart_ldisc, 0, sizeof (hci_uart_ldisc));
 	hci_uart_ldisc.magic		= TTY_LDISC_MAGIC;
 	hci_uart_ldisc.name		= "n_hci";
 	hci_uart_ldisc.open		= hci_uart_tty_open;
@@ -821,14 +821,8 @@ static int __init hci_uart_init(void)
 #ifdef CONFIG_BACKPORT_BT_HCIUART_3WIRE
 	h5_init();
 #endif
-#ifdef CONFIG_BACKPORT_BT_HCIUART_INTEL
-	intel_init();
-#endif
 #ifdef CONFIG_BACKPORT_BT_HCIUART_BCM
 	bcm_init();
-#endif
-#ifdef CONFIG_BACKPORT_BT_HCIUART_QCA
-	qca_init();
 #endif
 
 	return 0;
@@ -853,14 +847,8 @@ static void __exit hci_uart_exit(void)
 #ifdef CONFIG_BACKPORT_BT_HCIUART_3WIRE
 	h5_deinit();
 #endif
-#ifdef CONFIG_BACKPORT_BT_HCIUART_INTEL
-	intel_deinit();
-#endif
 #ifdef CONFIG_BACKPORT_BT_HCIUART_BCM
 	bcm_deinit();
-#endif
-#ifdef CONFIG_BACKPORT_BT_HCIUART_QCA
-	qca_deinit();
 #endif
 
 	/* Release tty registration of line discipline */

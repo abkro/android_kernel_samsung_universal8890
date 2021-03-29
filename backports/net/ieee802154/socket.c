@@ -432,11 +432,13 @@ static struct proto ieee802154_raw_prot = {
 #else
 	.sendmsg = backport_raw_sendmsg,
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0) */
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0)
 	.recvmsg	= raw_recvmsg,
 #else
 	.recvmsg = backport_raw_recvmsg,
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0) */
+
 	.hash		= raw_hash,
 	.unhash		= raw_unhash,
 	.connect	= raw_connect,
@@ -465,6 +467,7 @@ static const struct proto_ops ieee802154_raw_ops = {
 #else
 	.sendmsg = backport_ieee802154_sock_sendmsg,
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0) */
+
 	.recvmsg	   = sock_common_recvmsg,
 	.mmap		   = sock_no_mmap,
 	.sendpage	   = sock_no_sendpage,
@@ -1001,11 +1004,13 @@ static struct proto ieee802154_dgram_prot = {
 #else
 	.sendmsg = backport_dgram_sendmsg,
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0) */
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0)
 	.recvmsg	= dgram_recvmsg,
 #else
 	.recvmsg = backport_dgram_recvmsg,
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0) */
+
 	.hash		= dgram_hash,
 	.unhash		= dgram_unhash,
 	.connect	= dgram_connect,
@@ -1035,6 +1040,7 @@ static const struct proto_ops ieee802154_dgram_ops = {
 #else
 	.sendmsg = backport_ieee802154_sock_sendmsg,
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0) */
+
 	.recvmsg	   = sock_common_recvmsg,
 	.mmap		   = sock_no_mmap,
 	.sendpage	   = sock_no_sendpage,

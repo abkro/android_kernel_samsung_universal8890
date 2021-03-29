@@ -1375,11 +1375,13 @@ static const struct proto_ops hci_sock_ops = {
 #else
 	.sendmsg = backport_hci_sock_sendmsg,
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0) */
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0)
 	.recvmsg	= hci_sock_recvmsg,
 #else
 	.recvmsg = backport_hci_sock_recvmsg,
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0) */
+
 	.ioctl		= hci_sock_ioctl,
 	.poll		= datagram_poll,
 	.listen		= sock_no_listen,

@@ -12,18 +12,18 @@ config BACKPORT_VERSION
 
 config BACKPORT_KERNEL_VERSION
 	string
-	default "v4.3-0-g6a13feb9c828"
+	default "v4.2-0-g64291f7db5bd"
 
 config BACKPORT_KERNEL_NAME
 	string
 	default "Linux"
 
 menuconfig BACKPORT_LINUX
-	bool "Backport Linux v4.3-0-g6a13feb9c828 (backports d13ca803)"
+	bool "Backport Linux v4.2-0-g64291f7db5bd (backports d13ca803)"
 	default n
 	---help---
 	  Enabling this will let give you the opportunity to use features and
-	  drivers backported from Linux v4.3-0-g6a13feb9c828
+	  drivers backported from Linux v4.2-0-g64291f7db5bd
 	  on the kernel your are using. This is experimental and you should
 	  say no unless you'd like to help test things or want to help debug
 	  this should we run into any issues.

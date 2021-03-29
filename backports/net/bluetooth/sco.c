@@ -154,13 +154,13 @@ static void sco_chan_del(struct sock *sk, int err)
 	sock_set_flag(sk, SOCK_ZAPPED);
 }
 
-static void sco_conn_del(struct hci_conn *hcon, int err)
+static int sco_conn_del(struct hci_conn *hcon, int err)
 {
 	struct sco_conn *conn = hcon->sco_data;
 	struct sock *sk;
 
 	if (!conn)
-		return;
+		return 0;
 
 	BT_DBG("hcon %p conn %p, err %d", hcon, conn, err);
 
@@ -179,6 +179,7 @@ static void sco_conn_del(struct hci_conn *hcon, int err)
 
 	hcon->sco_data = NULL;
 	kfree(conn);
+	return 0;
 }
 
 static void __sco_chan_add(struct sco_conn *conn, struct sock *sk, struct sock *parent)
@@ -1194,11 +1195,13 @@ static const struct proto_ops sco_sock_ops = {
 #else
 	.sendmsg = backport_sco_sock_sendmsg,
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0) */
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0)
 	.recvmsg	= sco_sock_recvmsg,
 #else
 	.recvmsg = backport_sco_sock_recvmsg,
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0) */
+
 	.poll		= bt_sock_poll,
 	.ioctl		= bt_sock_ioctl,
 	.mmap		= sock_no_mmap,

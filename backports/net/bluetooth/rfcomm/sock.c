@@ -1068,11 +1068,13 @@ static const struct proto_ops rfcomm_sock_ops = {
 #else
 	.sendmsg = backport_rfcomm_sock_sendmsg,
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0) */
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0)
 	.recvmsg	= rfcomm_sock_recvmsg,
 #else
 	.recvmsg = backport_rfcomm_sock_recvmsg,
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0) */
+
 	.shutdown	= rfcomm_sock_shutdown,
 	.setsockopt	= rfcomm_sock_setsockopt,
 	.getsockopt	= rfcomm_sock_getsockopt,

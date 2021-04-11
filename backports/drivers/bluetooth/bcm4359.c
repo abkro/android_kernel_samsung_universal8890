@@ -28,7 +28,7 @@
 #include <linux/irq.h>
 #include <linux/module.h>
 #include <linux/platform_device.h>
-#include <linux/rfkill.h>
+// #include <linux/rfkill.h>
 #include <linux/serial_core.h>
 #include <linux/wakelock.h>
 #include <linux/of_gpio.h>
@@ -116,9 +116,11 @@ static int bcm4359_bt_rfkill_set_power(void *data, bool blocked)
 	return 0;
 }
 
-static const struct rfkill_ops bcm4359_bt_rfkill_ops = {
+/*
+ static const struct rfkill_ops bcm4359_bt_rfkill_ops = {
 	.set_block = bcm4359_bt_rfkill_set_power,
 };
+*/
 
 #ifdef BT_LPM_ENABLE
 static void set_wake_locked(int wake)
@@ -320,9 +322,11 @@ static int bcm4359_bluetooth_probe(struct platform_device *pdev)
 	gpio_direction_output(bt_gpio.bt_wake, 0);
 	gpio_direction_output(bt_gpio.bt_en, 0);
 
+/*
 	bt_rfkill = rfkill_alloc("bcm4359 Bluetooth", &pdev->dev,
 				RFKILL_TYPE_BLUETOOTH, &bcm4359_bt_rfkill_ops,
 				NULL);
+*/
 
 	if (unlikely(!bt_rfkill)) {
 		pr_err("[BT] bt_rfkill alloc failed.\n");
@@ -332,26 +336,26 @@ static int bcm4359_bluetooth_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
-	rfkill_init_sw_state(bt_rfkill, 0);
+//	rfkill_init_sw_state(bt_rfkill, 0);
 
-	rc = rfkill_register(bt_rfkill);
+//	rc = rfkill_register(bt_rfkill);
 
 	if (unlikely(rc)) {
 		pr_err("[BT] bt_rfkill register failed.\n");
-		rfkill_destroy(bt_rfkill);
+//		rfkill_destroy(bt_rfkill);
 		gpio_free(bt_gpio.bt_hostwake);
 		gpio_free(bt_gpio.bt_wake);
 		gpio_free(bt_gpio.bt_en);
 		return -1;
 	}
 
-	rfkill_set_sw_state(bt_rfkill, true);
+//	rfkill_set_sw_state(bt_rfkill, true);
 
 #ifdef BT_LPM_ENABLE
 	ret = bcm_bt_lpm_init(pdev);
 	if (ret) {
-		rfkill_unregister(bt_rfkill);
-		rfkill_destroy(bt_rfkill);
+//		rfkill_unregister(bt_rfkill);
+//		rfkill_destroy(bt_rfkill);
 
 		gpio_free(bt_gpio.bt_hostwake);
 		gpio_free(bt_gpio.bt_wake);
@@ -367,8 +371,8 @@ static int bcm4359_bluetooth_probe(struct platform_device *pdev)
 
 static int bcm4359_bluetooth_remove(struct platform_device *pdev)
 {
-	rfkill_unregister(bt_rfkill);
-	rfkill_destroy(bt_rfkill);
+//	rfkill_unregister(bt_rfkill);
+//	rfkill_destroy(bt_rfkill);
 
 	gpio_free(bt_gpio.bt_en);
 	gpio_free(bt_gpio.bt_wake);

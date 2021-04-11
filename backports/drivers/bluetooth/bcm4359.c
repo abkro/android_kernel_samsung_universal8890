@@ -122,6 +122,8 @@ static int bcm4359_bt_rfkill_set_power(void *data, bool blocked)
 };
 */
 
+bcm4359_bt_rfkill_set_power(NULL, false);
+
 #ifdef BT_LPM_ENABLE
 static void set_wake_locked(int wake)
 {

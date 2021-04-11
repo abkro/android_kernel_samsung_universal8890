@@ -122,8 +122,6 @@ static int bcm4359_bt_rfkill_set_power(void *data, bool blocked)
 };
 */
 
-bcm4359_bt_rfkill_set_power(NULL, false);
-
 #ifdef BT_LPM_ENABLE
 static void set_wake_locked(int wake)
 {
@@ -243,6 +241,8 @@ static int bcm_bt_lpm_init(struct platform_device *pdev)
 
 	hrtimer_init(&bt_lpm.enter_lpm_timer, CLOCK_MONOTONIC,
 			HRTIMER_MODE_REL);
+
+bcm4359_bt_rfkill_set_power(NULL, false);
 	bt_lpm.enter_lpm_delay = ktime_set(1, 0);  /* 1 sec */ /*1->3*//*3->4*/
 	bt_lpm.enter_lpm_timer.function = enter_lpm;
 
@@ -329,6 +329,8 @@ static int bcm4359_bluetooth_probe(struct platform_device *pdev)
 				RFKILL_TYPE_BLUETOOTH, &bcm4359_bt_rfkill_ops,
 				NULL);
 */
+
+bcm4359_bt_rfkill_set_power(NULL, false);
 
 	if (unlikely(!bt_rfkill)) {
 		pr_err("[BT] bt_rfkill alloc failed.\n");
